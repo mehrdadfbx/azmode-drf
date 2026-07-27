@@ -1,4 +1,5 @@
 from django.db import transaction
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -9,8 +10,10 @@ from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAdmin
 from catalog.models import Product
 from inventory.models import StockMovement
+from cart.models import CartItem
+
 from .models import Order, OrderItem
-from .serializers import OrderCreateSerializer, OrderSerializer, UpdateOrderStatusSerializer
+from .serializers import OrderSerializer, UpdateOrderStatusSerializer
 
 
 class UpdateOrderStatusView(UpdateAPIView):
@@ -23,17 +26,27 @@ class UpdateOrderStatusView(UpdateAPIView):
         new_status = serializer.validated_data.get('status')
 
         with transaction.atomic():
-            order = Order.objects.select_for_update().get(pk=serializer.instance.pk)
+            order = Order.objects.select_for_update().get(
+                pk=serializer.instance.pk
+            )
 
             if order.status != 'pending':
-                raise ValidationError('وضعیت این سفارش دیگر قابل تغییر نیست.')
+                raise ValidationError(
+                    'وضعیت این سفارش دیگر قابل تغییر نیست.'
+                )
 
             serializer.save()
 
             if new_status == 'rejected':
-                items = order.items.filter(product__isnull=False).order_by('product_id')
+                items = order.items.filter(
+                    product__isnull=False
+                ).order_by('product_id')
+    
                 for item in items:
-                    product = Product.objects.select_for_update().get(pk=item.product_id)
+                    product = Product.objects.select_for_update().get(
+                        pk=item.product_id
+                    )
+
                     product.stock += item.quantity
                     product.save()
 
@@ -45,23 +58,41 @@ class UpdateOrderStatusView(UpdateAPIView):
 
 
 class SubmitOrderView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        serializer = OrderCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        items_data = serializer.validated_data['items']
-
-        product_ids = sorted({item['product_id'] for item in items_data})
-
         with transaction.atomic():
+
+            cart_items = list(
+                CartItem.objects
+                .filter(user=request.user)
+                .select_related('product')
+            )
+
+            if not cart_items:
+                raise ValidationError('سبد خرید خالی است.')
+
+            product_ids = sorted({
+                item.product_id
+                for item in cart_items
+            })
+
             products_locked = {}
+
             for product_id in product_ids:
                 try:
-                    product = Product.objects.select_for_update().get(id=product_id)
+                    product = (
+                        Product.objects
+                        .select_for_update()
+                        .get(id=product_id)
+                    )
                 except Product.DoesNotExist:
-                    raise ValidationError(f'محصول با شناسه {product_id} دیگر در فروشگاه موجود نیست.')
+                    raise ValidationError(
+                        f'محصول با شناسه {product_id} دیگر در فروشگاه موجود نیست.'
+                    )
+
                 products_locked[product_id] = product
 
-            # ساخت سفارش
             order = Order.objects.create(
                 user=request.user,
                 customer_name=request.user.username,
@@ -69,29 +100,37 @@ class SubmitOrderView(APIView):
                 status='pending',
             )
 
-            # ساخت آیتم‌های سفارش + کم کردن موجودی + ثبت حرکت انبار
-            for item in items_data:
-                product = products_locked[item['product_id']]
+            for cart_item in cart_items:
+                product = products_locked[cart_item.product_id]
+
                 OrderItem.objects.create(
                     order=order,
                     product=product,
                     product_name_snapshot=product.name,
                     unit_price_snapshot=product.price,
-                    quantity=item['quantity'],
-                    selected_color=item.get('selected_color'),
+                    quantity=cart_item.quantity,
+                    selected_color=cart_item.selected_color,
                 )
 
-                product.stock -= item['quantity']
+                product.stock -= cart_item.quantity
                 product.save()
 
                 StockMovement.objects.create(
                     product=product,
-                    quantity_change=-item['quantity'],
+                    quantity_change=-cart_item.quantity,
                     reason=f'سفارش شماره {order.id}',
                 )
 
+            CartItem.objects.filter(
+                user=request.user
+            ).delete()
+
         serializer = OrderSerializer(order)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class MyOrdersView(ListAPIView):
@@ -99,7 +138,9 @@ class MyOrdersView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(
+            user=self.request.user
+        )
 
 
 class AllOrderView(ListAPIView):

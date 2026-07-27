@@ -1,4 +1,9 @@
-from rest_framework.generics import CreateAPIView, ListAPIView, DestroyAPIView, UpdateAPIView
+from rest_framework.generics import (
+    CreateAPIView,
+    ListAPIView,
+    DestroyAPIView,
+    UpdateAPIView,
+)
 from rest_framework.permissions import IsAuthenticated
 
 from .models import CartItem
@@ -25,12 +30,12 @@ class AddToCartView(CreateAPIView):
         if cart_item:
             cart_item.quantity += quantity
             cart_item.save()
+
+            serializer.instance = cart_item
+
         else:
-            CartItem.objects.create(
-                user=user,
-                product=product,
-                quantity=quantity,
-                selected_color=selected_color
+            serializer.save(
+                user=user
             )
 
 
@@ -39,9 +44,9 @@ class CartListView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        return CartItem.objects.filter(user=user)
-
+        return CartItem.objects.filter(
+            user=self.request.user
+        )
 
 
 class RemoveFromCartView(DestroyAPIView):
@@ -49,7 +54,9 @@ class RemoveFromCartView(DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return CartItem.objects.filter(user=self.request.user)
+        return CartItem.objects.filter(
+            user=self.request.user
+        )
 
 
 class UpdateCartItemView(UpdateAPIView):
@@ -57,4 +64,6 @@ class UpdateCartItemView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return CartItem.objects.filter(user=self.request.user)
+        return CartItem.objects.filter(
+            user=self.request.user
+        )
