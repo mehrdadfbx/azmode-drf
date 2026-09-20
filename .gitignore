@@ -9,7 +9,6 @@ __pycache__/
 # ==========================
 # Virtual Environment
 # ==========================
-.env/
 venv/
 env/
 ENV/
@@ -25,11 +24,10 @@ db.sqlite3-journal
 media/
 staticfiles/
 
-# فایل‌های محیطی حاوی اطلاعات حساس (SECRET_KEY, DB password, API keys)
+# فایل محیطی حاوی اطلاعات حساس (SECRET_KEY, DB password, API keys)
 .env
 .env.local
 .env.*.local
-*.env
 
 # ==========================
 # IDE / Editor
@@ -50,15 +48,4 @@ Thumbs.db
 # Testing / Coverage
 # ==========================
 htmlcov/
-.coverage
-.coverage.*
-.pytest_cache/
-nosetests.xml
-coverage.xml
-
-# ==========================
-# Distribution / Packaging
-# ==========================
-build/
-dist/
-*.egg-info/
+.coverag
