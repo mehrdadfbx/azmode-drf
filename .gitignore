@@ -1,0 +1,64 @@
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==========================
+# Virtual Environment
+# ==========================
+.env/
+venv/
+env/
+ENV/
+.venv/
+
+# ==========================
+# Django
+# ==========================
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# فایل‌های محیطی حاوی اطلاعات حساس (SECRET_KEY, DB password, API keys)
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==========================
+# IDE / Editor
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==========================
+# OS
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Testing / Coverage
+# ==========================
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# ==========================
+# Distribution / Packaging
+# ==========================
+build/
+dist/
+*.egg-info/
