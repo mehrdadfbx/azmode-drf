@@ -1,10 +1,13 @@
 from django.db import models
-from django.db.models import PROTECT
 
 # Create your models here.
 
 class ProductCategory(models.Model):
     name = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = 'دسته‌بندی'
+        verbose_name_plural = 'دسته‌بندی‌ها'
 
     def __str__(self):
         return self.name
@@ -29,11 +32,11 @@ class Product(models.Model):
     name               = models.CharField(max_length=255)
     price              = models.DecimalField(max_digits=12, decimal_places=2)
     description        = models.TextField()
-    image              = models.ImageField(upload_to='product/', height_field=None, width_field=None, max_length=None)
+    image              = models.ImageField(upload_to='product/', height_field=None, width_field=None, max_length=None, null=True, blank=True)
     color              = models.JSONField(default=list,blank=True)
     size               = models.CharField(max_length=50, null=True, blank=True)
     brand              = models.CharField(max_length=50, null=True, blank=True)
-    sku                = models.CharField(max_length=50, null=True, blank=True)
+    sku                = models.CharField(max_length=50, null=True, blank=True, unique=True)
     specifications     = models.TextField(null=True, blank=True)
     stock              = models.PositiveIntegerField(default=0)
     image_aspect_ratio = models.CharField(
@@ -54,6 +57,7 @@ class Product(models.Model):
                             related_name='products'
                         )
     created_at          = models.DateTimeField(auto_now_add=True)
+    update_at           = models.DateTimeField(auto_now=True)
 
 
     def __str__(self):
