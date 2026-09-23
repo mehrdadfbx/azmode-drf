@@ -1,7 +1,7 @@
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError, NotFound
+from rest_framework.exceptions import NotFound
 from catalog.models import Product
 from accounts.permissions import IsAdmin
 from .models import StockMovement
@@ -24,9 +24,6 @@ class AdjustStockView(APIView):
                 raise NotFound('محصول پیدا نشد.')
 
             new_stock = product.stock + quantity_change
-            if new_stock < 0:
-                raise ValidationError('موجودی نمی‌تواند منفی شود.')
-
             product.stock = new_stock
             product.save()
 

@@ -38,7 +38,7 @@ class Product(models.Model):
     brand              = models.CharField(max_length=50, null=True, blank=True)
     sku                = models.CharField(max_length=50, null=True, blank=True, unique=True)
     specifications     = models.TextField(null=True, blank=True)
-    stock              = models.PositiveIntegerField(default=0)
+    stock              = models.IntegerField(default=0)
     image_aspect_ratio = models.CharField(
                             max_length=20,
                             choices=ASPECT_RATIO_CHOICES,
@@ -59,6 +59,9 @@ class Product(models.Model):
     created_at          = models.DateTimeField(auto_now_add=True)
     update_at           = models.DateTimeField(auto_now=True)
 
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.name

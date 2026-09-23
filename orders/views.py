@@ -6,12 +6,11 @@ from rest_framework import status
 from rest_framework.generics import ListAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from accounts.models import User
 from accounts.permissions import IsAdmin
 from catalog.models import Product
+from inventory.models import StockMovement
 from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer, UpdateOrderStatusSerializer
-
 
 
 class UpdateOrderStatusView(UpdateAPIView):
@@ -20,31 +19,46 @@ class UpdateOrderStatusView(UpdateAPIView):
     permission_classes = [IsAdmin]
     http_method_names = ['patch']
 
+    def perform_update(self, serializer):
+        new_status = serializer.validated_data.get('status')
+
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(pk=serializer.instance.pk)
+
+            if order.status != 'pending':
+                raise ValidationError('وضعیت این سفارش دیگر قابل تغییر نیست.')
+
+            serializer.save()
+
+            if new_status == 'rejected':
+                items = order.items.filter(product__isnull=False).order_by('product_id')
+                for item in items:
+                    product = Product.objects.select_for_update().get(pk=item.product_id)
+                    product.stock += item.quantity
+                    product.save()
+
+                    StockMovement.objects.create(
+                        product=product,
+                        quantity_change=item.quantity,
+                        reason=f'رد سفارش شماره {order.id}',
+                    )
+
+
 class SubmitOrderView(APIView):
     def post(self, request):
         serializer = OrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         items_data = serializer.validated_data['items']
 
-        requested_totals_by_product = {}
-        for item in items_data:
-            product_id = item['product_id']
-            quantity = item['quantity']
-            requested_totals_by_product[product_id] = requested_totals_by_product.get(product_id, 0) + quantity
+        product_ids = sorted({item['product_id'] for item in items_data})
 
         with transaction.atomic():
             products_locked = {}
-            for product_id, requested_qty in requested_totals_by_product.items():
+            for product_id in product_ids:
                 try:
                     product = Product.objects.select_for_update().get(id=product_id)
                 except Product.DoesNotExist:
                     raise ValidationError(f'محصول با شناسه {product_id} دیگر در فروشگاه موجود نیست.')
-
-                if product.stock < requested_qty:
-                    raise ValidationError(
-                        f'موجودی کالا {product.name} کافی نیست (درخواست: {requested_qty}، موجود: {product.stock}).'
-                    )
-
                 products_locked[product_id] = product
 
             # ساخت سفارش
@@ -55,7 +69,7 @@ class SubmitOrderView(APIView):
                 status='pending',
             )
 
-            # ساخت آیتم‌های سفارش + کم کردن موجودی
+            # ساخت آیتم‌های سفارش + کم کردن موجودی + ثبت حرکت انبار
             for item in items_data:
                 product = products_locked[item['product_id']]
                 OrderItem.objects.create(
@@ -70,9 +84,14 @@ class SubmitOrderView(APIView):
                 product.stock -= item['quantity']
                 product.save()
 
+                StockMovement.objects.create(
+                    product=product,
+                    quantity_change=-item['quantity'],
+                    reason=f'سفارش شماره {order.id}',
+                )
+
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
 
 class MyOrdersView(ListAPIView):
@@ -80,7 +99,7 @@ class MyOrdersView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user = self.request.user)
+        return Order.objects.filter(user=self.request.user)
 
 
 class AllOrderView(ListAPIView):

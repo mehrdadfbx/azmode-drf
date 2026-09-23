@@ -21,7 +21,14 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
+        read_only_fields = ['stock']
 
     def get_is_available(self, obj):
         return obj.stock > 0
 
+class ProductPublicSerializer(ProductSerializer):
+    is_available = None
+
+    class Meta(ProductSerializer.Meta):
+        fields = None
+        exclude = ['stock']
