@@ -1,8 +1,7 @@
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
-from rest_framework import status
+from rest_framework.exceptions import ValidationError, NotFound
 from catalog.models import Product
 from accounts.permissions import IsAdmin
 from .models import StockMovement
@@ -22,19 +21,19 @@ class AdjustStockView(APIView):
             try:
                 product = Product.objects.select_for_update().get(id=product_id)
             except Product.DoesNotExist:
-                raise ValidationError('محصول پیدا نشد.')
+                raise NotFound('محصول پیدا نشد.')
 
             new_stock = product.stock + quantity_change
             if new_stock < 0:
                 raise ValidationError('موجودی نمی‌تواند منفی شود.')
 
-            product.stock = new_stock 
+            product.stock = new_stock
             product.save()
 
-            StockMovement(self, *args, **kwargs)
-
-            # این دو خط رو خودت بنویس:
-            # ۱. product.stock رو به new_stock تغییر بده و save کن
-            # ۲. یه StockMovement جدید بساز با product, quantity_change, reason
+            StockMovement.objects.create(
+                product=product,
+                quantity_change=quantity_change,
+                reason=reason,
+            )
 
         return Response({'message': 'موجودی به‌روزرسانی شد.', 'new_stock': new_stock})
