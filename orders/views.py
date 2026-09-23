@@ -3,12 +3,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
+from rest_framework.generics import ListAPIView, UpdateAPIView
+from rest_framework.permissions import IsAuthenticated
 
 from accounts.models import User
+from accounts.permissions import IsAdmin
 from catalog.models import Product
 from .models import Order, OrderItem
-from .serializers import OrderCreateSerializer, OrderSerializer
+from .serializers import OrderCreateSerializer, OrderSerializer, UpdateOrderStatusSerializer
 
+
+
+class UpdateOrderStatusView(UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = UpdateOrderStatusSerializer
+    permission_classes = [IsAdmin]
+    http_method_names = ['patch']
 
 class SubmitOrderView(APIView):
     def post(self, request):
@@ -62,3 +72,18 @@ class SubmitOrderView(APIView):
 
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+class MyOrdersView(ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(user = self.request.user)
+
+
+class AllOrderView(ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAdmin]
+    queryset = Order.objects.all()

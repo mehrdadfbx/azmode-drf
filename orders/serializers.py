@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
 
+
+class UpdateOrderStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']
+
 class OrderItemInputSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
     quantity = serializers.IntegerField(min_value=1)
