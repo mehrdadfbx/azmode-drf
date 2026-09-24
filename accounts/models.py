@@ -7,6 +7,14 @@ class UserManager(BaseUserManager):
             if not username:
                 raise ValueError('user not be null')
 
+            if not password:
+                raise ValueError('user must have password')
+
+            phone = extra_fields.get('phone')
+            if not phone:
+                raise  ValueError('user must have phone')
+
+
             user = self.model(username = username, **extra_fields)
             user.set_password(password)
             user.save(using= self._db)
@@ -21,6 +29,8 @@ class UserManager(BaseUserManager):
                 raise ValueError('Superuser must have is_staff=True.')
             if extra_fields.get('is_superuser') is not True:
                 raise ValueError('Superuser must have is_superuser=True.')
+            if extra_fields.get('is_admin') is not True:
+                raise ValueError('Superuser must have is_admin=True.')
 
             return self.create_user(username, password, **extra_fields)
 
@@ -38,7 +48,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = []  # فیلدهایی که createsuperuser علاوه بر username و password می‌پرسه
+    REQUIRED_FIELDS = ['phone']
 
     def __str__(self):
         return self.username
