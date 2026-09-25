@@ -17,14 +17,12 @@ class AddToCartView(CreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        product = serializer.validated_data['product']
-        quantity = serializer.validated_data['quantity']
-        selected_color = serializer.validated_data.get('selected_color')
+        product = serializer.validated_data["product"]
+        quantity = serializer.validated_data["quantity"]
+        selected_color = serializer.validated_data.get("selected_color")
 
         cart_item = CartItem.objects.filter(
-            user=user,
-            product=product,
-            selected_color=selected_color
+            user=user, product=product, selected_color=selected_color
         ).first()
 
         if cart_item:
@@ -34,19 +32,16 @@ class AddToCartView(CreateAPIView):
             serializer.instance = cart_item
 
         else:
-            serializer.save(
-                user=user
-            )
+            serializer.save(user=user)
 
 
 class CartListView(ListAPIView):
     serializer_class = CartItemSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        return CartItem.objects.filter(
-            user=self.request.user
-        )
+        return CartItem.objects.filter(user=self.request.user)
 
 
 class RemoveFromCartView(DestroyAPIView):
@@ -54,9 +49,7 @@ class RemoveFromCartView(DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return CartItem.objects.filter(
-            user=self.request.user
-        )
+        return CartItem.objects.filter(user=self.request.user)
 
 
 class UpdateCartItemView(UpdateAPIView):
@@ -64,6 +57,4 @@ class UpdateCartItemView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return CartItem.objects.filter(
-            user=self.request.user
-        )
+        return CartItem.objects.filter(user=self.request.user)
