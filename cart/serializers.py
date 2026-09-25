@@ -18,11 +18,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
-    product_stock = serializers.IntegerField(
-        source="product.stock",
-        read_only=True,
-    )
-
     product_image = serializers.ImageField(
         source="product.image",
         read_only=True,
@@ -36,7 +31,6 @@ class CartItemSerializer(serializers.ModelSerializer):
             "product",
             "product_name",
             "product_price",
-            "product_stock",
             "product_image",
             "quantity",
             "selected_color",
@@ -48,9 +42,8 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     def validate_quantity(self, value):
         if value <= 0:
-            raise serializers.ValidationError("Quantity must be greater than 0")
-
-        if value > self.context["request"].user.cartitem_set.get(product=value):
-            pass
+            raise serializers.ValidationError(
+                "Quantity must be greater than 0"
+            )
 
         return value
