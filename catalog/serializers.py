@@ -39,5 +39,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductPublicSerializer(ProductSerializer):
     class Meta(ProductSerializer.Meta):
-        fields = "__all__"
-        read_only_fields = ["stock"]
+        fields = [
+            'id', 'name', 'price', 'description', 'image',
+            'color', 'size', 'brand', 'sku', 'specifications',
+            'image_aspect_ratio', 'packaging_type', 'category',
+            'created_at', 'update_at',
+            'category_name', 'packaging_type_name', 'is_available',
+        ]
