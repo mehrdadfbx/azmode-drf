@@ -17,4 +17,4 @@ class AdminCreateUserSerializer(serializers.ModelSerializer):
 class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'phone']
+        fields = ['id', 'username', 'phone', 'is_admin', 'is_staff', 'is_superuser']
